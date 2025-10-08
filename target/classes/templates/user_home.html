@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>User Home</title>
+<style>
+body {
+	font-family: Arial, sans-serif;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	height: 100vh;
+	background-color: #f4f4f4;
+	text-align: center;
+}
+
+.welcome-container {
+	padding: 40px;
+	background: white;
+	border-radius: 8px;
+	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+	color: #333;
+}
+
+p {
+	color: #555;
+}
+
+a {
+	display: inline-block;
+	margin-top: 20px;
+	padding: 10px 20px;
+	background-color: #007bff;
+	color: white;
+	text-decoration: none;
+	border-radius: 5px;
+}
+</style>
+</head>
+<body>
+	<div class="welcome-container">
+		<h1>Welcome, User!</h1>
+		<!-- Lấy tên người dùng từ session -->
+		<p th:if="${session.loggedInUser != null}"
+			th:text="'Hello, ' + ${session.loggedInUser.fullname}"></p>
+		<p>This is your home page.</p>
+		<a th:href="@{/logout}">Logout</a>
+	</div>
+</body>
+</html>

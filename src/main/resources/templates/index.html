@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphQL Spring Boot Project - Full CRUD</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f7f6; }
+        h1, h2 { color: #333; }
+        .container { max-width: 1200px; margin: auto; padding: 25px; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); background-color: #fff; }
+        .section { margin-bottom: 40px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff; }
+        .section h2 { border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 20px; color: #007bff; }
+        .subsection { margin-top: 25px; padding-left: 15px; border-left: 3px solid #eee; }
+        .subsection h3 { color: #555; margin-bottom: 15px; }
+
+        .list-container { margin-top: 15px; }
+        .item-list { list-style: none; padding: 0; }
+        .list-item { background: #f9f9f9; border: 1px solid #e9e9e9; padding: 12px 15px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .list-item strong { color: #0056b3; }
+        .item-actions button { margin-left: 8px; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
+        .item-actions .edit-btn { background-color: #ffc107; color: #333; }
+        .item-actions .edit-btn:hover { background-color: #e0a800; }
+        .item-actions .delete-btn { background-color: #dc3545; color: white; }
+        .item-actions .delete-btn:hover { background-color: #c82333; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: bold; color: #444; }
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="password"],
+        .form-group input[type="number"],
+        .form-group textarea,
+        .form-group select {
+            width: calc(100% - 24px); /* Account for padding */
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box; /* Include padding in width */
+            font-size: 1em;
+        }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .form-group button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-right: 10px;
+        }
+        .form-group button:hover { background-color: #218838; }
+        .form-group .cancel-btn { background-color: #6c757d; }
+        .form-group .cancel-btn:hover { background-color: #5a6268; }
+
+        .message.success { color: green; font-weight: bold; margin-top: 10px; }
+        .message.error { color: red; font-weight: bold; margin-top: 10px; }
+        .hidden { display: none; }
+        .loading-spinner { border: 4px solid rgba(0,0,0,.1); border-left-color: #007bff; border-radius: 50%; width: 24px; height: 24px; animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; margin-left: 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; }
+        .checkbox-group label { margin-right: 10px; font-weight: normal; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GraphQL Spring Boot Application - Full CRUD</h1>
+
+        <!-- Product Section -->
+        <div class="section">
+            <h2>Products Management</h2>
+
+            <div class="subsection">
+                <h3>View All Products</h3>
+                <button onclick="loadProducts('asc')">Load Products Ascending (Price)</button>
+                <button onclick="loadProducts('desc')">Load Products Descending (Price)</button>
+                <div class="list-container">
+                    <ul id="productList" class="item-list"></ul>
+                    <p id="productMessage" class="message"></p>
+                    <p id="productError" class="message error"></p>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <h3>Products by Category</h3>
+                <div class="form-group">
+                    <label for="filterCategoryId">Category ID:</label>
+                    <input type="number" id="filterCategoryId" value="1">
+                    <button onclick="loadProductsByCategoryId()">Load Products by Category</button>
+                </div>
+                <div class="list-container">
+                    <ul id="productsByCatList" class="item-list"></ul>
+                    <p id="productsByCatMessage" class="message"></p>
+                    <p id="productsByCatError" class="message error"></p>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <h3>Create New Product</h3>
+                <div class="form-group">
+                    <label for="createProductTitle">Title:</label>
+                    <input type="text" id="createProductTitle" placeholder="e.g., iPhone 15 Pro Max">
+                </div>
+                <div class="form-group">
+                    <label for="createProductQuantity">Quantity:</label>
+                    <input type="number" id="createProductQuantity" value="10">
+                </div>
+                <div class="form-group">
+                    <label for="createProductDesc">Description:</label>
+                    <textarea id="createProductDesc" placeholder="e.g., Điện thoại cao cấp của Apple"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="createProductPrice">Price:</label>
+                    <input type="number" step="0.01" id="createProductPrice" value="1200.00">
+                </div>
+                <div class="form-group">
+                    <label for="createProductUserId">User (Owner):</label>
+                    <select id="createProductUserId"></select>
+                </div>
+                <div class="form-group">
+                    <button onclick="createProduct()">Create Product</button>
+                </div>
+                <p id="createProductMessage" class="message"></p>
+                <p id="createProductError" class="message error"></p>
+            </div>
+
+            <div class="subsection hidden" id="updateProductSection">
+                <h3>Update Product</h3>
+                <input type="hidden" id="updateProductId">
+                <div class="form-group">
+                    <label for="updateProductTitle">Title:</label>
+                    <input type="text" id="updateProductTitle">
+                </div>
+                <div class="form-group">
+                    <label for="updateProductQuantity">Quantity:</label>
+                    <input type="number" id="updateProductQuantity">
+                </div>
+                <div class="form-group">
+                    <label for="updateProductDesc">Description:</label>
+                    <textarea id="updateProductDesc"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="updateProductPrice">Price:</label>
+                    <input type="number" step="0.01" id="updateProductPrice">
+                </div>
+                <div class="form-group">
+                    <label for="updateProductUserId">User (Owner):</label>
+                    <select id="updateProductUserId"></select>
+                </div>
+                <div class="form-group">
+                    <button onclick="updateProduct()">Update Product</button>
+                    <button type="button" class="cancel-btn" onclick="hideUpdateForm('Product')">Cancel</button>
+                </div>
+                <p id="updateProductMessage" class="message"></p>
+                <p id="updateProductError" class="message error"></p>
+            </div>
+        </div>
+
+        <!-- User Section -->
+        <div class="section">
+            <h2>Users Management</h2>
+
+            <div class="subsection">
+                <h3>View All Users</h3>
+                <button onclick="loadUsers()">Load Users</button>
+                <div class="list-container">
+                    <ul id="userList" class="item-list"></ul>
+                    <p id="userMessage" class="message"></p>
+                    <p id="userError" class="message error"></p>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <h3>Create New User</h3>
+                <div class="form-group">
+                    <label for="createUserFullname">Full Name:</label>
+                    <input type="text" id="createUserFullname" placeholder="e.g., Nguyễn Văn A">
+                </div>
+                <div class="form-group">
+                    <label for="createUserEmail">Email:</label>
+                    <input type="email" id="createUserEmail" placeholder="e.g., vana@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="createUserPassword">Password:</label>
+                    <input type="password" id="createUserPassword" value="pass123">
+                </div>
+                <div class="form-group">
+                    <label for="createUserPhone">Phone:</label>
+                    <input type="text" id="createUserPhone" placeholder="e.g., 0901234567">
+                </div>
+                <div class="form-group">
+                    <label>Categories of Interest:</label>
+                    <div id="createCategoryCheckboxes" class="checkbox-group">
+                        <!-- Categories will be dynamically loaded here -->
+                    </div>
+                </div>
+                <div class="form-group">
+                    <button onclick="createUser()">Create User</button>
+                </div>
+                <p id="createUserMessage" class="message"></p>
+                <p id="createUserError" class="message error"></p>
+            </div>
+
+            <div class="subsection hidden" id="updateUserSection">
+                <h3>Update User</h3>
+                <input type="hidden" id="updateUserId">
+                <div class="form-group">
+                    <label for="updateUserFullname">Full Name:</label>
+                    <input type="text" id="updateUserFullname">
+                </div>
+                <div class="form-group">
+                    <label for="updateUserEmail">Email:</label>
+                    <input type="email" id="updateUserEmail">
+                </div>
+                <div class="form-group">
+                    <label for="updateUserPassword">Password:</label>
+                    <input type="password" id="updateUserPassword">
+                </div>
+                <div class="form-group">
+                    <label for="updateUserPhone">Phone:</label>
+                    <input type="text" id="updateUserPhone">
+                </div>
+                 <div class="form-group">
+                    <label>Categories of Interest:</label>
+                    <div id="updateCategoryCheckboxes" class="checkbox-group">
+                        <!-- Categories will be dynamically loaded here -->
+                    </div>
+                </div>
+                <div class="form-group">
+                    <button onclick="updateUser()">Update User</button>
+                    <button type="button" class="cancel-btn" onclick="hideUpdateForm('User')">Cancel</button>
+                </div>
+                <p id="updateUserMessage" class="message"></p>
+                <p id="updateUserError" class="message error"></p>
+            </div>
+        </div>
+
+        <!-- Category Section -->
+        <div class="section">
+            <h2>Categories Management</h2>
+
+            <div class="subsection">
+                <h3>View All Categories</h3>
+                <button onclick="loadCategories()">Load Categories</button>
+                <div class="list-container">
+                    <ul id="categoryList" class="item-list"></ul>
+                    <p id="categoryMessage" class="message"></p>
+                    <p id="categoryError" class="message error"></p>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <h3>Create New Category</h3>
+                <div class="form-group">
+                    <label for="createCategoryName">Name:</label>
+                    <input type="text" id="createCategoryName" placeholder="e.g., Smart Home">
+                </div>
+                <div class="form-group">
+                    <label for="createCategoryImages">Image URL:</label>
+                    <input type="text" id="createCategoryImages" placeholder="e.g., images/categories/smarthome.jpg">
+                </div>
+                <div class="form-group">
+                    <button onclick="createCategory()">Create Category</button>
+                </div>
+                <p id="createCategoryMessage" class="message"></p>
+                <p id="createCategoryError" class="message error"></p>
+            </div>
+
+            <div class="subsection hidden" id="updateCategorySection">
+                <h3>Update Category</h3>
+                <input type="hidden" id="updateCategoryId">
+                <div class="form-group">
+                    <label for="updateCategoryName">Name:</label>
+                    <input type="text" id="updateCategoryName">
+                </div>
+                <div class="form-group">
+                    <label for="updateCategoryImages">Image URL:</label>
+                    <input type="text" id="updateCategoryImages">
+                </div>
+                <div class="form-group">
+                    <button onclick="updateCategory()">Update Category</button>
+                    <button type="button" class="cancel-btn" onclick="hideUpdateForm('Category')">Cancel</button>
+                </div>
+                <p id="updateCategoryMessage" class="message"></p>
+                <p id="updateCategoryError" class="message error"></p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const GRAPHQL_ENDPOINT = '/graphql';
+
+        // --- Utility Functions ---
+        async function fetchData(query, variables = {}) {
+            try {
+                const response = await fetch(GRAPHQL_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ query, variables }),
+                });
+                const data = await response.json();
+                if (data.errors) {
+                    console.error('GraphQL Errors:', data.errors);
+                    throw new Error(data.errors.map(err => err.message).join(', '));
+                }
+                return data.data;
+            } catch (error) {
+                console.error('Fetch Error:', error);
+                throw error;
+            }
+        }
+
+        function showMessage(elementId, message, isError = false) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.textContent = message;
+                el.className = isError ? 'message error' : 'message success';
+            }
+        }
+
+        function clearMessages(type) {
+            document.getElementById(`${type}Message`).textContent = '';
+            document.getElementById(`${type}Error`).textContent = '';
+        }
+
+        function hideUpdateForm(type) {
+            document.getElementById(`update${type}Section`).classList.add('hidden');
+            clearMessages(`update${type}`);
+        }
+
+        // --- Global Data for Dropdowns/Checkboxes ---
+        let allAvailableUsers = [];
+        let allAvailableCategories = [];
+
+        async function loadAllUsersForDropdown() {
+            const query = `query { allUsers { id fullname } }`;
+            try {
+                const data = await fetchData(query);
+                allAvailableUsers = data.allUsers || [];
+                populateUserDropdowns();
+            } catch (error) {
+                console.error('Error loading users for dropdown:', error);
+            }
+        }
+
+        function populateUserDropdowns() {
+            const createSelect = document.getElementById('createProductUserId');
+            const updateSelect = document.getElementById('updateProductUserId');
+
+            [createSelect, updateSelect].forEach(selectEl => {
+                if (selectEl) {
+                    selectEl.innerHTML = '<option value="">Select User</option>';
+                    allAvailableUsers.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = user.fullname;
+                        selectEl.appendChild(option);
+                    });
+                }
+            });
+        }
+
+        async function loadAllCategoriesForSelection() {
+            const query = `query { allCategories { id name } }`;
+            try {
+                const data = await fetchData(query);
+                allAvailableCategories = data.allCategories || [];
+                populateCategoryCheckboxes();
+            } catch (error) {
+                console.error('Error loading categories for checkboxes:', error);
+            }
+        }
+
+        function populateCategoryCheckboxes(selectedCategoryIds = [], targetElementIdPrefix = 'create') {
+            const container = document.getElementById(`${targetElementIdPrefix}CategoryCheckboxes`);
+            if (!container) return;
+
+            container.innerHTML = '';
+            allAvailableCategories.forEach(category => {
+                const label = document.createElement('label');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'category';
+                checkbox.value = category.id;
+                checkbox.id = `${targetElementIdPrefix}Category_${category.id}`;
+                if (selectedCategoryIds.includes(category.id.toString())) { // category.id from GraphQL is string
+                    checkbox.checked = true;
+                }
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(category.name));
+                container.appendChild(label);
+            });
+        }
+
+
+        // --- Product Functions ---
+        async function loadProducts(sortBy = 'asc') {
+            clearMessages('product');
+            const productList = document.getElementById('productList');
+            productList.innerHTML = '<li>Loading products... <span class="loading-spinner"></span></li>';
+
+            const query = `
+                query AllProducts($sortByPrice: String) {
+                    allProducts(sortByPrice: $sortByPrice) {
+                        id
+                        title
+                        price
+                        user {
+                            fullname
+                        }
+                    }
+                }
+            `;
+            const variables = { sortByPrice: sortBy };
+            try {
+                const data = await fetchData(query, variables);
+                productList.innerHTML = '';
+                if (data.allProducts && data.allProducts.length > 0) {
+                    data.allProducts.forEach(product => {
+                        const li = document.createElement('li');
+                        li.className = 'list-item';
+                        li.setAttribute('data-id', product.id);
+                        li.innerHTML = `
+                            <div>
+                                <strong>${product.title}</strong> - Price: $${product.price} (Owner: ${product.user ? product.user.fullname : 'N/A'}) - ID: ${product.id}
+                            </div>
+                            <div class="item-actions">
+                                <button class="edit-btn" onclick="editProduct('${product.id}')">Edit</button>
+                                <button class="delete-btn" onclick="deleteProduct('${product.id}')">Delete</button>
+                            </div>
+                        `;
+                        productList.appendChild(li);
+                    });
+                } else {
+                    productList.innerHTML = '<li>No products found.</li>';
+                }
+            } catch (error) {
+                showMessage('productError', 'Error loading products: ' + error.message, true);
+                productList.innerHTML = '<li>Error loading products.</li>';
+            }
+        }
+
+        async function loadProductsByCategoryId() {
+            clearMessages('productsByCat');
+            const categoryId = document.getElementById('filterCategoryId').value;
+            const productsByCatList = document.getElementById('productsByCatList');
+            productsByCatList.innerHTML = '<li>Loading products... <span class="loading-spinner"></span></li>';
+
+            if (!categoryId) {
+                showMessage('productsByCatError', 'Please enter a Category ID', true);
+                productsByCatList.innerHTML = '';
+                return;
+            }
+            const query = `
+                query ProductsByCategoryId($categoryId: ID!) {
+                    productsByCategoryId(categoryId: $categoryId) {
+                        id
+                        title
+                        price
+                        user {
+                            fullname
+                        }
+                    }
+                }
+            `;
+            const variables = { categoryId: categoryId };
+            try {
+                const data = await fetchData(query, variables);
+                productsByCatList.innerHTML = '';
+                if (data.productsByCategoryId && data.productsByCategoryId.length > 0) {
+                    data.productsByCategoryId.forEach(product => {
+                        const li = document.createElement('li');
+                        li.className = 'list-item';
+                        li.setAttribute('data-id', product.id);
+                        li.innerHTML = `
+                            <div>
+                                <strong>${product.title}</strong> - Price: $${product.price} (Owner: ${product.user ? product.user.fullname : 'N/A'}) - ID: ${product.id}
+                            </div>
+                            <div class="item-actions">
+                                <button class="edit-btn" onclick="editProduct('${product.id}')">Edit</button>
+                                <button class="delete-btn" onclick="deleteProduct('${product.id}')">Delete</button>
+                            </div>
+                        `;
+                        productsByCatList.appendChild(li);
+                    });
+                } else {
+                    productsByCatList.innerHTML = `<li>No products found for category ID ${categoryId}.</li>`;
+                }
+            } catch (error) {
+                showMessage('productsByCatError', 'Error loading products: ' + error.message, true);
+                productsByCatList.innerHTML = '<li>Error loading products for category.</li>';
+            }
+        }
+
+        async function createProduct() {
+            clearMessages('createProduct');
+            const title = document.getElementById('createProductTitle').value;
+            const quantity = parseInt(document.getElementById('createProductQuantity').value);
+            const desc = document.getElementById('createProductDesc').value;
+            const price = parseFloat(document.getElementById('createProductPrice').value);
+            const userId = document.getElementById('createProductUserId').value;
+
+            if (!title || isNaN(quantity) || isNaN(price) || !userId) {
+                showMessage('createProductError', 'Please fill in all product fields correctly (including selecting a User).', true);
+                return;
+            }
+
+            const mutation = `
+                mutation CreateProduct($product: ProductInput!) {
+                    createProduct(product: $product) {
+                        id
+                        title
+                        price
+                        user { fullname }
+                    }
+                }
+            `;
+            const variables = {
+                product: {
+                    title, quantity, desc, price, userId
+                }
+            };
+
+            try {
+                const data = await fetchData(mutation, variables);
+                showMessage('createProductMessage', `Product '${data.createProduct.title}' created with ID: ${data.createProduct.id}`, false);
+                // Clear form
+                document.getElementById('createProductTitle').value = '';
+                document.getElementById('createProductQuantity').value = '10';
+                document.getElementById('createProductDesc').value = '';
+                document.getElementById('createProductPrice').value = '1200.00';
+                document.getElementById('createProductUserId').value = '';
+
+                loadProducts('asc'); // Refresh product list
+            } catch (error) {
+                showMessage('createProductError', 'Error creating product: ' + error.message, true);
+            }
+        }
+
+        async function editProduct(id) {
+            clearMessages('updateProduct');
+            const query = `
+                query ProductById($id: ID!) {
+                    productById(id: $id) {
+                        id
+                        title
+                        quantity
+                        desc
+                        price
+                        user { id }
+                    }
+                }
+            `;
+            const variables = { id: id };
+            try {
+                const data = await fetchData(query, variables);
+                const product = data.productById;
+                if (product) {
+                    document.getElementById('updateProductId').value = product.id;
+                    document.getElementById('updateProductTitle').value = product.title;
+                    document.getElementById('updateProductQuantity').value = product.quantity;
+                    document.getElementById('updateProductDesc').value = product.desc || '';
+                    document.getElementById('updateProductPrice').value = product.price;
+                    document.getElementById('updateProductUserId').value = product.user ? product.user.id : '';
+                    document.getElementById('updateProductSection').classList.remove('hidden');
+                } else {
+                    showMessage('productError', 'Product not found for editing.', true);
+                }
+            } catch (error) {
+                showMessage('productError', 'Error fetching product for edit: ' + error.message, true);
+            }
+        }
+
+        async function updateProduct() {
+            clearMessages('updateProduct');
+            const id = document.getElementById('updateProductId').value;
+            const title = document.getElementById('updateProductTitle').value;
+            const quantity = parseInt(document.getElementById('updateProductQuantity').value);
+            const desc = document.getElementById('updateProductDesc').value;
+            const price = parseFloat(document.getElementById('updateProductPrice').value);
+            const userId = document.getElementById('updateProductUserId').value;
+
+            if (!id || !title || isNaN(quantity) || isNaN(price) || !userId) {
+                showMessage('updateProductError', 'Please fill in all product fields correctly.', true);
+                return;
+            }
+
+            const mutation = `
+                mutation UpdateProduct($id: ID!, $product: ProductInput!) {
+                    updateProduct(id: $id, product: $product) {
+                        id
+                        title
+                        price
+                        user { fullname }
+                    }
+                }
+            `;
+            const variables = {
+                id: id,
+                product: {
+                    title, quantity, desc, price, userId
+                }
+            };
+
+            try {
+                const data = await fetchData(mutation, variables);
+                if (data.updateProduct) {
+                    showMessage('updateProductMessage', `Product '${data.updateProduct.title}' updated successfully.`, false);
+                    hideUpdateForm('Product');
+                    loadProducts('asc'); // Refresh product list
+                } else {
+                    showMessage('updateProductError', 'Product not found or failed to update.', true);
+                }
+            } catch (error) {
+                showMessage('updateProductError', 'Error updating product: ' + error.message, true);
+            }
+        }
+
+        async function deleteProduct(id) {
+            clearMessages('product');
+            if (!confirm(`Are you sure you want to delete Product ID: ${id}?`)) {
+                return;
+            }
+
+            const mutation = `
+                mutation DeleteProduct($id: ID!) {
+                    deleteProduct(id: $id)
+                }
+            `;
+            const variables = { id: id };
+
+            try {
+                const data = await fetchData(mutation, variables);
+                if (data.deleteProduct) {
+                    showMessage('productMessage', `Product ID ${id} deleted successfully.`, false);
+                    loadProducts('asc'); // Refresh product list
+                } else {
+                    showMessage('productError', `Failed to delete Product ID ${id}.`, true);
+                }
+            } catch (error) {
+                showMessage('productError', 'Error deleting product: ' + error.message, true);
+            }
+        }
+
+        // --- User Functions ---
+        async function loadUsers() {
+            clearMessages('user');
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '<li>Loading users... <span class="loading-spinner"></span></li>';
+
+            const query = `
+                query AllUsers {
+                    allUsers {
+                        id
+                        fullname
+                        email
+                        phone
+                        categories {
+                            id
+                            name
+                        }
+                    }
+                }
+            `;
+            try {
+                const data = await fetchData(query);
+                userList.innerHTML = '';
+                if (data.allUsers && data.allUsers.length > 0) {
+                    data.allUsers.forEach(user => {
+                        const li = document.createElement('li');
+                        li.className = 'list-item';
+                        li.setAttribute('data-id', user.id);
+                        const categories = user.categories.map(cat => cat.name).join(', ') || 'None';
+                        li.innerHTML = `
+                            <div>
+                                <strong>${user.fullname}</strong> - Email: ${user.email} (Phone: ${user.phone || 'N/A'}) - Categories: ${categories} - ID: ${user.id}
+                            </div>
+                            <div class="item-actions">
+                                <button class="edit-btn" onclick="editUser('${user.id}')">Edit</button>
+                                <button class="delete-btn" onclick="deleteUser('${user.id}')">Delete</button>
+                            </div>
+                        `;
+                        userList.appendChild(li);
+                    });
+                } else {
+                    userList.innerHTML = '<li>No users found.</li>';
+                }
+            } catch (error) {
+                showMessage('userError', 'Error loading users: ' + error.message, true);
+                userList.innerHTML = '<li>Error loading users.</li>';
+            }
+        }
+
+        async function createUser() {
+            clearMessages('createUser');
+            const fullname = document.getElementById('createUserFullname').value;
+            const email = document.getElementById('createUserEmail').value;
+            const password = document.getElementById('createUserPassword').value;
+            const phone = document.getElementById('createUserPhone').value;
+
+            const selectedCategoryIds = Array.from(document.querySelectorAll('#createCategoryCheckboxes input[type="checkbox"]:checked'))
+                                            .map(cb => cb.value);
+
+            if (!fullname || !email || !password) {
+                showMessage('createUserError', 'Please fill in Full Name, Email, and Password.', true);
+                return;
+            }
+
+            const mutation = `
+                mutation CreateUser($user: UserInput!) {
+                    createUser(user: $user) {
+                        id
+                        fullname
+                        email
+                        categories { name }
+                    }
+                }
+            `;
+            const variables = {
+                user: {
+                    fullname, email, password, phone, categoryIds: selectedCategoryIds
+                }
+            };
+
+            try {
+                const data = await fetchData(mutation, variables);
+                showMessage('createUserMessage', `User '${data.createUser.fullname}' created with ID: ${data.createUser.id}`, false);
+                // Clear form
+                document.getElementById('createUserFullname').value = '';
+                document.getElementById('createUserEmail').value = '';
+                document.getElementById('createUserPassword').value = 'pass123'; // Reset to default for convenience
+                document.getElementById('createUserPhone').value = '';
+                document.querySelectorAll('#createCategoryCheckboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
+
+                loadUsers(); // Refresh user list
+            } catch (error) {
+                showMessage('createUserError', 'Error creating user: ' + error.message, true);
+            }
+        }
+
+        async function editUser(id) {
+            clearMessages('updateUser');
+            const query = `
+                query UserById($id: ID!) {
+                    userById(id: $id) {
+                        id
+                        fullname
+                        email
+                        password
+                        phone
+                        categories { id }
+                    }
+                }
+            `;
+            const variables = { id: id };
+            try {
+                const data = await fetchData(query, variables);
+                const user = data.userById;
+                if (user) {
+                    document.getElementById('updateUserId').value = user.id;
+                    document.getElementById('updateUserFullname').value = user.fullname;
+                    document.getElementById('updateUserEmail').value = user.email;
+                    document.getElementById('updateUserPassword').value = user.password;
+                    document.getElementById('updateUserPhone').value = user.phone || '';
+
+                    const userCategoryIds = user.categories.map(cat => cat.id.toString()); // Convert to string for comparison
+                    populateCategoryCheckboxes(userCategoryIds, 'update'); // Populate update form checkboxes
+
+                    document.getElementById('updateUserSection').classList.remove('hidden');
+                } else {
+                    showMessage('userError', 'User not found for editing.', true);
+                }
+            } catch (error) {
+                showMessage('userError', 'Error fetching user for edit: ' + error.message, true);
+            }
+        }
+
+        async function updateUser() {
+            clearMessages('updateUser');
+            const id = document.getElementById('updateUserId').value;
+            const fullname = document.getElementById('updateUserFullname').value;
+            const email = document.getElementById('updateUserEmail').value;
+            const password = document.getElementById('updateUserPassword').value;
+            const phone = document.getElementById('updateUserPhone').value;
+
+            const selectedCategoryIds = Array.from(document.querySelectorAll('#updateCategoryCheckboxes input[type="checkbox"]:checked'))
+                                            .map(cb => cb.value);
+
+            if (!id || !fullname || !email || !password) {
+                showMessage('updateUserError', 'Please fill in Full Name, Email, and Password.', true);
+                return;
+            }
+
+            const mutation = `
+                mutation UpdateUser($id: ID!, $user: UserInput!) {
+                    updateUser(id: $id, user: $user) {
+                        id
+                        fullname
+                        email
+                        categories { name }
+                    }
+                }
+            `;
+            const variables = {
+                id: id,
+                user: {
+                    fullname, email, password, phone, categoryIds: selectedCategoryIds
+                }
+            };
+
+            try {
+                const data = await fetchData(mutation, variables);
+                if (data.updateUser) {
+                    showMessage('updateUserMessage', `User '${data.updateUser.fullname}' updated successfully.`, false);
+                    hideUpdateForm('User');
+                    loadUsers(); // Refresh user list
+                } else {
+                    showMessage('updateUserError', 'User not found or failed to update.', true);
+                }
+            } catch (error) {
+                showMessage('updateUserError', 'Error updating user: ' + error.message, true);
+            }
+        }
+
+        async function deleteUser(id) {
+            clearMessages('user');
+            if (!confirm(`Are you sure you want to delete User ID: ${id}? This will also delete associated products!`)) {
+                return;
+            }
+
+            const mutation = `
+                mutation DeleteUser($id: ID!) {
+                    deleteUser(id: $id)
+                }
+            `;
+            const variables = { id: id };
+
+            try {
+                const data = await fetchData(mutation, variables);
+                if (data.deleteUser) {
+                    showMessage('userMessage', `User ID ${id} deleted successfully.`, false);
+                    loadUsers(); // Refresh user list
+                    loadProducts('asc'); // Refresh products as well, since products are linked to users
+                } else {
+                    showMessage('userError', `Failed to delete User ID ${id}.`, true);
+                }
+            } catch (error) {
+                showMessage('userError', 'Error deleting user: ' + error.message, true);
+            }
+        }
+
+        // --- Category Functions ---
+        async function loadCategories() {
+            clearMessages('category');
+            const categoryList = document.getElementById('categoryList');
+            categoryList.innerHTML = '<li>Loading categories... <span class="loading-spinner"></span></li>';
+
+            const query = `
+                query AllCategories {
+                    allCategories {
+                        id
+                        name
+                        images
+                    }
+                }
+            `;
+            try {
+                const data = await fetchData(query);
+                categoryList.innerHTML = '';
+                if (data.allCategories && data.allCategories.length > 0) {
+                    data.allCategories.forEach(category => {
+                        const li = document.createElement('li');
+                        li.className = 'list-item';
+                        li.setAttribute('data-id', category.id);
+                        li.innerHTML = `
+                            <div>
+                                <strong>${category.name}</strong> (ID: ${category.id}) - Image: ${category.images || 'N/A'}
+                            </div>
+                            <div class="item-actions">
+                                <button class="edit-btn" onclick="editCategory('${category.id}')">Edit</button>
+                                <button class="delete-btn" onclick="deleteCategory('${category.id}')">Delete</button>
+                            </div>
+                        `;
+                        categoryList.appendChild(li);
+                    });
+                } else {
+                    categoryList.innerHTML = '<li>No categories found.</li>';
+                }
+            } catch (error) {
+                showMessage('categoryError', 'Error loading categories: ' + error.message, true);
+                categoryList.innerHTML = '<li>Error loading categories.</li>';
+            }
+        }
+
+        async function createCategory() {
+            clearMessages('createCategory');
+            const name = document.getElementById('createCategoryName').value;
+            const images = document.getElementById('createCategoryImages').value;
+
+            if (!name) {
+                showMessage('createCategoryError', 'Please enter a Category Name.', true);
+                return;
+            }
+
+            const mutation = `
+                mutation CreateCategory($category: CategoryInput!) {
+                    createCategory(category: $category) {
+                        id
+                        name
+                        images
+                    }
+                }
+            `;
+            const variables = {
+                category: { name, images }
+            };
+
+            try {
+                const data = await fetchData(mutation, variables);
+                showMessage('createCategoryMessage', `Category '${data.createCategory.name}' created with ID: ${data.createCategory.id}`, false);
+                // Clear form
+                document.getElementById('createCategoryName').value = '';
+                document.getElementById('createCategoryImages').value = '';
+
+                loadCategories(); // Refresh category list
+                loadAllCategoriesForSelection(); // Also refresh category checkboxes for user forms
+            } catch (error) {
+                showMessage('createCategoryError', 'Error creating category: ' + error.message, true);
+            }
+        }
+
+        async function editCategory(id) {
+            clearMessages('updateCategory');
+            const query = `
+                query CategoryById($id: ID!) {
+                    categoryById(id: $id) {
+                        id
+                        name
+                        images
+                    }
+                }
+            `;
+            const variables = { id: id };
+            try {
+                const data = await fetchData(query, variables);
+                const category = data.categoryById;
+                if (category) {
+                    document.getElementById('updateCategoryId').value = category.id;
+                    document.getElementById('updateCategoryName').value = category.name;
+                    document.getElementById('updateCategoryImages').value = category.images || '';
+                    document.getElementById('updateCategorySection').classList.remove('hidden');
+                } else {
+                    showMessage('categoryError', 'Category not found for editing.', true);
+                }
+            } catch (error) {
+                showMessage('categoryError', 'Error fetching category for edit: ' + error.message, true);
+            }
+        }
+
+        async function updateCategory() {
+            clearMessages('updateCategory');
+            const id = document.getElementById('updateCategoryId').value;
+            const name = document.getElementById('updateCategoryName').value;
+            const images = document.getElementById('updateCategoryImages').value;
+
+            if (!id || !name) {
+                showMessage('updateCategoryError', 'Please enter a Category Name.', true);
+                return;
+            }
+
+            const mutation = `
+                mutation UpdateCategory($id: ID!, $category: CategoryInput!) {
+                    updateCategory(id: $id, category: $category) {
+                        id
+                        name
+                        images
+                    }
+                }
+            `;
+            const variables = {
+                id: id,
+                category: { name, images }
+            };
+
+            try {
+                const data = await fetchData(mutation, variables);
+                if (data.updateCategory) {
+                    showMessage('updateCategoryMessage', `Category '${data.updateCategory.name}' updated successfully.`, false);
+                    hideUpdateForm('Category');
+                    loadCategories(); // Refresh category list
+                    loadAllCategoriesForSelection(); // Refresh category checkboxes for user forms
+                } else {
+                    showMessage('updateCategoryError', 'Category not found or failed to update.', true);
+                }
+            } catch (error) {
+                showMessage('updateCategoryError', 'Error updating category: ' + error.message, true);
+            }
+        }
+
+        async function deleteCategory(id) {
+            clearMessages('category');
+            if (!confirm(`Are you sure you want to delete Category ID: ${id}? This might affect users linked to this category.`)) {
+                return;
+            }
+
+            const mutation = `
+                mutation DeleteCategory($id: ID!) {
+                    deleteCategory(id: $id)
+                }
+            `;
+            const variables = { id: id };
+
+            try {
+                const data = await fetchData(mutation, variables);
+                if (data.deleteCategory) {
+                    showMessage('categoryMessage', `Category ID ${id} deleted successfully.`, false);
+                    loadCategories(); // Refresh category list
+                    loadAllCategoriesForSelection(); // Refresh category checkboxes for user forms
+                    loadUsers(); // Refresh users as well, to reflect category changes
+                } else {
+                    showMessage('categoryError', `Failed to delete Category ID ${id}.`, true);
+                }
+            } catch (error) {
+                showMessage('categoryError', 'Error deleting category: ' + error.message, true);
+            }
+        }
+
+
+        // Initial loads when page is ready
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadAllUsersForDropdown(); // Load users first for product forms
+            await loadAllCategoriesForSelection(); // Load categories for user forms
+
+            // Then load main lists
+            loadProducts('asc');
+            loadUsers();
+            loadCategories();
+        });
+    </script>
+</body>
+</html>
